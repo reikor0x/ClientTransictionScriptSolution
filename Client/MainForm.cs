@@ -15,18 +15,16 @@ namespace TransictionScript
             InitializeComponent();
         }
 
-        private void textBox1_TextChanged(object sender, EventArgs e)
+  
+
+        private void StartButton_Click(object sender, EventArgs e)
         {
 
-        }
+            progressBar1.Visible = true;
+            progressBar1.Value = 10;
 
-        private void progressBar1_Click(object sender, EventArgs e)
-        {
 
-        }
-
-        private void button1_Click(object sender, EventArgs e)
-        {
+            StartButton.Enabled = false;
 
             foreach (var process in Process.GetProcessesByName("Teams"))
             {
@@ -67,9 +65,9 @@ namespace TransictionScript
 
 
 
-            
 
 
+            progressBar1.Value = 20;
 
             DeleteKey("Software\\Microsoft\\OneDrive");
             DeleteKey("Software\\Policies\\OneDrive");
@@ -84,14 +82,25 @@ namespace TransictionScript
             DeleteKey("Software\\Microsoft\\Office\\Teams\\DeadEnd");
             DeleteKey("Software\\Microsoft\\Office\\Outlook\\Addins\\TeamsAddin.FastConnect");
 
-
+            progressBar1.Value = 30;
             AddOutlookKeys();
-
+            progressBar1.Value = 40;
             AddTeamsKeys();
-
+            progressBar1.Value = 80;
             MoveOneDriveFiles();
+
+            progressBar1.Value = 100;
+            StartButton.Visible = false;
+
+            
+            MainMessage.Visible = false;
+            FinishLabel.Visible = true;
+            FinishBtn.Visible = true;
+            FinishBtn.Enabled = true;
+
         }
 
+       
 
         private void MoveOneDriveFiles()
         {
@@ -108,7 +117,30 @@ namespace TransictionScript
 
             if (oneDrivesourcePath != null)
             {
-                Directory.Move(oneDrivesourcePath, OneDriveTargetPath);
+
+                try
+                {
+                    WriteLog("Starting OneDrive content move", "INFO");
+                    var process = new Process
+                    {
+                        StartInfo = new ProcessStartInfo
+                        {
+                            FileName = "powershell.exe",
+                            UseShellExecute = false,
+                            RedirectStandardOutput = true,
+                            Arguments = "Move-Item '" + oneDrivesourcePath + "\\*' '" + OneDriveTargetPath + "' -Force -ErrorAction SilentlyContinue",
+                            CreateNoWindow = true
+                        }
+                    };
+                    process.Start();
+                    process.WaitForExit();
+                    WriteLog("Finished OneDrive content move", "INFO");
+                }
+                catch (Exception e)
+                {
+                    WriteLog("Error moving files to new OneDrive path", "ERROR");
+                }
+                
             }
 
 
@@ -211,6 +243,9 @@ namespace TransictionScript
             }
         }
 
-
+        private void FinishBtn_Click(object sender, EventArgs e)
+        {
+            System.Windows.Forms.Application.Exit();
+        }
     }
 }
