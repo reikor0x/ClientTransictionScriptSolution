@@ -1,9 +1,16 @@
 ﻿using Microsoft.Win32;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Http.Headers;
+using System.Net.Http;
+using System.Security.Policy;
+using System.Security.Principal;
+using System.Threading;
 using System.Windows.Forms;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace TransictionScript
 {
@@ -12,13 +19,45 @@ namespace TransictionScript
         public TransictionScriptClient()
         {
             InitializeLogs();
+            InitalizeConfiguration();
             InitializeComponent();
+
+            string status = PingFunction();
         }
 
-  
+        private string PingFunction()
+        {
+                HttpClient client = new HttpClient();
+                client.BaseAddress = new Uri(config.functionUrlbase + "/api/ping?code=" + config.pingFunctionSecret);
+
+                // Add an Accept header for JSON format.
+                client.DefaultRequestHeaders.Accept.Add(
+                new MediaTypeWithQualityHeaderValue("application/json"));
+
+                // List data response.
+                HttpResponseMessage response = client.GetAsync(client.BaseAddress).Result;  // Blocking call! Program will wait here until a response is received or a timeout occurs.
+                if (response.IsSuccessStatusCode)
+                {
+                    labelOnline.Text = "Online Status: Online";
+                    return "Online";
+                }
+                else
+                {
+                    labelOnline.Text = "Online Status: Offline";
+                    return "Offline";
+                }
+
+        }
 
         private void StartButton_Click(object sender, EventArgs e)
         {
+
+            string status = PingFunction();
+            if (status == "Offline")
+            {
+                MessageBox.Show("Services seems to be offline right now","Services Offline",MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             progressBar1.Visible = true;
             progressBar1.Value = 10;
@@ -147,8 +186,26 @@ namespace TransictionScript
         }
 
         public string SessionLogPath;
-            
-        
+
+        public class Configuration
+        {
+            public string functionUrlbase { get; set; }
+            public string pingFunctionSecret { get; set; }
+        }
+        public Configuration config=new Configuration();
+
+        private void InitalizeConfiguration()
+        {
+            if (File.Exists("config.json"))
+            {
+                config = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(File.ReadAllText("config.json"));
+            } else
+            {
+                System.Windows.Forms.Application.Exit();
+            }
+        }
+
+
         private void InitializeLogs()
         {
             string folderName = @".\Logs";

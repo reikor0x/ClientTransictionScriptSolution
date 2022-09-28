@@ -38,6 +38,7 @@
             this.splitter1 = new System.Windows.Forms.Splitter();
             this.FinishBtn = new System.Windows.Forms.Button();
             this.FinishLabel = new System.Windows.Forms.Label();
+            this.labelOnline = new System.Windows.Forms.Label();
             this.SuspendLayout();
             // 
             // StartButton
@@ -77,7 +78,6 @@
             this.label2.Size = new System.Drawing.Size(50, 13);
             this.label2.TabIndex = 5;
             this.label2.Text = "Link Utili:";
-            
             // 
             // linkLabel1
             // 
@@ -129,13 +129,22 @@
             this.FinishLabel.TabIndex = 10;
             this.FinishLabel.Text = resources.GetString("FinishLabel.Text");
             this.FinishLabel.Visible = false;
-            
+            // 
+            // labelOnline
+            // 
+            this.labelOnline.AutoSize = true;
+            this.labelOnline.Location = new System.Drawing.Point(13, 13);
+            this.labelOnline.Name = "labelOnline";
+            this.labelOnline.Size = new System.Drawing.Size(73, 13);
+            this.labelOnline.TabIndex = 11;
+            this.labelOnline.Text = "Online Status:";
             // 
             // TransictionScriptClient
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(800, 450);
+            this.Controls.Add(this.labelOnline);
             this.Controls.Add(this.FinishLabel);
             this.Controls.Add(this.FinishBtn);
             this.Controls.Add(this.linkLabel2);
@@ -162,6 +171,8 @@
         private System.Windows.Forms.Splitter splitter1;
         private System.Windows.Forms.Button FinishBtn;
         private System.Windows.Forms.Label FinishLabel;
+        private System.Windows.Forms.Label labelOnline;
+
     }
 }
 
