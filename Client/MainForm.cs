@@ -11,6 +11,9 @@ using System.Security.Principal;
 using System.Threading;
 using System.Windows.Forms;
 using static System.Net.Mime.MediaTypeNames;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Text;
 
 namespace TransictionScript
 {
@@ -18,8 +21,8 @@ namespace TransictionScript
     {
         public TransictionScriptClient()
         {
-            InitializeLogs();
             InitalizeConfiguration();
+            InitializeLogs();
             InitializeComponent();
 
             string status = PingFunction();
@@ -49,6 +52,34 @@ namespace TransictionScript
 
         }
 
+
+        private void PostClientLog(string LogStringJSON)
+        {
+            HttpClient client = new HttpClient();
+            client.BaseAddress = new Uri(config.functionUrlbase + "/api/PostClientLog?code=" + config.PostClientLogFunctionSecret);
+
+
+            
+            // Add an Accept header for JSON format.
+            client.DefaultRequestHeaders.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/json"));
+
+            // List data response.
+            var content = new StringContent(LogStringJSON, Encoding.UTF8, "application/json");
+            HttpResponseMessage response = client.PostAsync(client.BaseAddress, content).Result;  // Blocking call! Program will wait here until a response is received or a timeout occurs.
+            if (response.IsSuccessStatusCode)
+            {
+                WriteLocalLog("Log Posted in the online database", "INFO");
+            }
+            else
+            {
+                WriteLocalLog("Failed to post log online", "ERROR");
+            }
+
+        }
+
+
+
         private void StartButton_Click(object sender, EventArgs e)
         {
 
@@ -58,51 +89,22 @@ namespace TransictionScript
                 MessageBox.Show("Services seems to be offline right now","Services Offline",MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
-
+            MessageBox.Show("Questo processo resetterà le tue applicazioni Office, sei sicuro?", "Check", MessageBoxButtons.OK, MessageBoxIcon.Information);
             progressBar1.Visible = true;
             progressBar1.Value = 10;
 
 
             StartButton.Enabled = false;
 
-            foreach (var process in Process.GetProcessesByName("Teams"))
-            {
-                WriteLog("Killing Teams process", "INFO");
-                process.Kill();
-            }
-
-            foreach (var process in Process.GetProcessesByName("Outlook"))
-            {
-                WriteLog("Killing Outlook process", "INFO");
-                process.Kill();
-            }
-
-            foreach (var process in Process.GetProcessesByName("WINWORD"))
-            {
-                WriteLog("Killing WINWORD process", "INFO");
-                process.Kill();
-            }
 
 
-            foreach (var process in Process.GetProcessesByName("Excel"))
-            {
-                WriteLog("Killing Excel process", "INFO");
-                process.Kill();
-            }
-
-            foreach (var process in Process.GetProcessesByName("PowerPoint"))
-            {
-                WriteLog("Killing PowerPoint process", "INFO");
-                process.Kill();
-            }
-
-            foreach (var process in Process.GetProcessesByName("OneNote"))
-            {
-                WriteLog("Killing OneNote process", "INFO");
-                process.Kill();
-            }
-
-
+            KillAllProcess("Teams");
+            KillAllProcess("Outlook");
+            KillAllProcess("WINWORD");
+            KillAllProcess("Excel");
+            KillAllProcess("PowerPoint");
+            KillAllProcess("OneNote");
+            KillAllProcess("OneDrive");
 
 
 
@@ -139,7 +141,22 @@ namespace TransictionScript
 
         }
 
-       
+       private void KillAllProcess(string process)
+        {
+
+            try
+            {
+                foreach (var execution in Process.GetProcessesByName(process))
+                {
+                    WriteLog("Killing " + process + " process", "INFO");
+                    execution.Kill();
+                }
+            }
+            catch (Exception ex)
+            {
+                WriteLog("Failed to kill" + process + " process: " + ex.Message, "ERROR");
+            }
+        }
 
         private void MoveOneDriveFiles()
         {
@@ -191,6 +208,13 @@ namespace TransictionScript
         {
             public string functionUrlbase { get; set; }
             public string pingFunctionSecret { get; set; }
+            public bool CentralizedLogging { get; set; }
+            public string ComputerName { get; set; }
+            public string OSVersion { get; set; }
+            public string UserDomainName { get; set; }
+            public string Username { get; set; }
+            public string PostClientLogFunctionSecret { get; set; }
+            
         }
         public Configuration config=new Configuration();
 
@@ -198,7 +222,9 @@ namespace TransictionScript
         {
             if (File.Exists("config.json"))
             {
-                config = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(File.ReadAllText("config.json"));
+                var jsonSerializerSettings = new JsonSerializerSettings();
+                jsonSerializerSettings.MissingMemberHandling = MissingMemberHandling.Ignore;
+                config = Newtonsoft.Json.JsonConvert.DeserializeObject<Configuration>(File.ReadAllText("config.json"), jsonSerializerSettings);
             } else
             {
                 System.Windows.Forms.Application.Exit();
@@ -215,11 +241,15 @@ namespace TransictionScript
                 Directory.CreateDirectory(folderName);
             }
 
+            config.ComputerName = Environment.MachineName;
+            config.Username = Environment.UserName;
+            config.OSVersion = Environment.OSVersion.ToString();
+            config.UserDomainName = Environment.UserDomainName;
             SessionLogPath = folderName + "\\ExecutionLog." + DateTime.Now.ToString("yyyyMMddHHmm") + ".log";
 
             using (StreamWriter sw = File.AppendText(SessionLogPath))
             {
-                sw.WriteLine("TimeStamp;Severity;Message");
+                sw.WriteLine("Username,ComputerName,OSVersion,UserDomainName,TimeStamp,Severity,Message");
             }
 
             WriteLog("Transiction Script started", "INFO");
@@ -228,13 +258,47 @@ namespace TransictionScript
 
         private void WriteLog(string message,string severity) 
         {
-            string path = SessionLogPath;
-            using (StreamWriter sw = File.AppendText(path))
+            string TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:MM:ss");
+            string LogString = config.Username + "," + config.ComputerName + "," + config.OSVersion + "," + config.UserDomainName + "," + TimeStamp + "," + severity + "," + message;
+            using (StreamWriter sw = File.AppendText(SessionLogPath))
             {
-                sw.WriteLine(DateTime.Now.ToString("yyyyMMddHHMMss") + ";" + severity +";" + message);
+                sw.WriteLine(LogString);
+            }
+
+            if (config.CentralizedLogging == true)
+            {
+                var csvObject = new Dictionary<string,string>();
+
+                csvObject.Add("id", System.Guid.NewGuid().ToString());
+                csvObject.Add("Username",config.Username);
+                csvObject.Add("ComputerName", config.ComputerName);
+                csvObject.Add("OSVersion", config.OSVersion);
+                csvObject.Add("UserDomainName", config.UserDomainName);
+                csvObject.Add("Severity", severity);
+                csvObject.Add("TimeStamp", TimeStamp);
+                csvObject.Add("Message", message);
+                
+                
+                string LogStringJSON=JsonConvert.SerializeObject(csvObject);
+                PostClientLog(LogStringJSON);
+
             }
         }
-        
+
+
+
+        private void WriteLocalLog(string message, string severity)
+        {
+            string TimeStamp = DateTime.Now.ToString("yyyy-MM-dd HH:MM:ss");
+            string LogString = config.Username + "," + config.ComputerName + "," + config.OSVersion + "," + config.UserDomainName + "," + TimeStamp + "," + severity + "," + message;
+            using (StreamWriter sw = File.AppendText(SessionLogPath))
+            {
+                sw.WriteLine(LogString);
+            }
+
+            
+        }
+
 
 
         private void DeleteKey (string keyf)

@@ -1,3 +1,6 @@
 {
-
+  "functionUrlbase": "https://<Function base URL>.azurewebsites.net",
+  "pingFunctionSecret": "PingFunctionKey",
+  "PostClientLogFunctionSecret": "PostClientLogFunctionKey",
+  "CentralizedLogging": true
 }
