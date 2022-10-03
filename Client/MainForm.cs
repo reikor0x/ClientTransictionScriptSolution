@@ -113,6 +113,7 @@ namespace TransictionScript
             DeleteKey("Software\\Microsoft\\OneDrive");
             DeleteKey("Software\\Policies\\OneDrive");
             DeleteKey("Software\\Microsoft\\Office\\16.0\\Common\\Identity");
+            
             DeleteKey("Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Desktop\\NameSpace");
             DeleteKey("Software\\SyncEngines\\Providers\\OneDrive");
             DeleteKey("Software\\Classes\\CLSID\\{04271989-C4D2-8D26-E559-3BE1753BC3ED}");
@@ -122,6 +123,23 @@ namespace TransictionScript
             DeleteKey("Software\\Microsoft\\Office\\Teams\\HomeUserUpn");
             DeleteKey("Software\\Microsoft\\Office\\Teams\\DeadEnd");
             DeleteKey("Software\\Microsoft\\Office\\Outlook\\Addins\\TeamsAddin.FastConnect");
+
+
+            DeleteKey("Software\\Microsoft\\Office\\16.0\\Common\\Roaming\\Identities");
+
+            DeleteKey("Software\\Microsoft\\Office\\16.0\\Common\\Internet\\WebServiceCache");
+            DeleteKey("Software\\Microsoft\\Office\\16.0\\Common\\ServicesManagerCache");
+            DeleteKey("Software\\Microsoft\\Office\\16.0\\Common\\Licensing");
+
+
+            DeleteKey("Software\\Microsoft\\Office\\Registration");
+            DeleteKey("Software\\Microsoft\\Office\\ClickToRun\\Configuration");
+
+
+
+            ClearLocalAppDataFolder("\\Microsoft\\Office\\Licenses");
+
+
 
             progressBar1.Value = 30;
             AddOutlookKeys();
@@ -141,7 +159,27 @@ namespace TransictionScript
 
         }
 
-       private void KillAllProcess(string process)
+        private void ClearLocalAppDataFolder(string Folder)
+        { 
+            string LocalAppData= Environment.GetEnvironmentVariable("LocalAppData");
+
+            string FolderToDelete= LocalAppData + Folder;
+            try
+            {
+                var dir = new DirectoryInfo(FolderToDelete);
+                dir.Attributes = dir.Attributes & ~FileAttributes.ReadOnly;
+                dir.Delete(true);
+                WriteLog("Folder " + FolderToDelete + " cleared", "INFO");
+            }
+            catch (IOException ex)
+            {
+                WriteLog("Unable to clear folder " + FolderToDelete + ": " + ex.Message, "WARNING");
+            }
+
+        }
+
+
+        private void KillAllProcess(string process)
         {
 
             try
