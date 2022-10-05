@@ -15,6 +15,12 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Text;
 
+
+using System.Security.Authentication;
+
+
+
+
 namespace TransictionScript
 {
     public partial class TransictionScriptClient : Form
@@ -47,6 +53,7 @@ namespace TransictionScript
                 else
                 {
                     labelOnline.Text = "Online Status: Offline";
+                    WriteLocalLog("Services seems to be offline, cannot proceed. HTTPSTATUSCODE: " + response.StatusCode, "ERROR");
                     return "Offline";
                 }
 
@@ -157,6 +164,64 @@ namespace TransictionScript
             FinishBtn.Visible = true;
             FinishBtn.Enabled = true;
 
+
+
+            signoutofwamaccounts();
+
+            WPJCleanup();
+
+
+            WriteLog("Finished Execution", "INFO");
+        }
+        private void WPJCleanup()
+        {
+            try
+            {
+                WriteLog("Starting WPJCleanup()", "INFO");
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "Resources\\WPJCleanUp\\WPJCleanUp.cmd",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+                WriteLog("Finished WPJCleanup", "INFO");
+            }
+            catch (Exception e)
+            {
+                WriteLog("Error WPJCleanup() " + e.Message, "ERROR");
+            }
+        }
+
+        private void signoutofwamaccounts()
+        {
+            try
+            {
+                WriteLog("Starting SignOut of WAM Accounts", "INFO");
+                var process = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = "powershell.exe -executionpolicy unrestricted",
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        Arguments = ".\\Resources\\signoutofwamaccounts.ps1",
+                        CreateNoWindow = true
+                    }
+                };
+                process.Start();
+                process.WaitForExit();
+                WriteLog("Finished SignOut of WAM Accounts", "INFO");
+            }
+            catch (Exception e)
+            {
+                WriteLog("Error Signing Out of WAM Accounts", "ERROR");
+            }
         }
 
         private void ClearLocalAppDataFolder(string Folder)
