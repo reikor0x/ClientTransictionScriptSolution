@@ -35,8 +35,8 @@ namespace AzureBackEnd
                    [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
                    [CosmosDB(
                             databaseName: "ClientsLogs",
-                            collectionName: "ClientsLogs",
-                            ConnectionStringSetting = "_secret:CosmosDBConnectionStringSetting")]IAsyncCollector<dynamic> documentsOut, 
+                            containerName: "ClientsLogs",
+                            Connection = "_secret:CosmosDBConnectionStringSetting")]IAsyncCollector<dynamic> documentsOut, 
                    ILogger log)
         {
                         
